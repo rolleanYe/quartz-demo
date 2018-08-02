@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:osgi="http://www.springframework.org/schema/osgi"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/osgi http://www.springframework.org/schema/osgi/spring-osgi.xsd"
+	default-autowire="byName">
+	
+<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"  destroy-method="close">  
+    <property name="driverClassName" value="com.mysql.jdbc.Driver"></property>  
+    <property name="url" value="jdbc:mysql://10.65.216.64:3334/dloan?useLocalSessionState=true&amp;autoReconnect=true&amp;zeroDateTimeBehavior=convertToNull"></property>  
+    <property name="username" value="dloanuser"></property>  
+    <property name="password" value="dloanuser"></property>    
+</bean>
+	<!-- ========================================== -->
+	<!-- Task bean                            -->
+	<!-- ========================================== -->
+<!-- 	<bean id="abstractDaemonTask" class="com.netfinworks.counter.ext.service.daemon.AbstractDaemonTask" abstract="true" > -->
+<!-- 		<property name="daemonStop" value="${sys.daemon.disable}" /> -->
+<!-- 	</bean> -->
+
+	<bean id="testTask" class="com.test.TestTask" />
+
+	<!-- ========================================== -->
+	<!-- Job                           -->
+	<!-- ========================================== -->
+<!-- 	<bean id="commonRefreshJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean"> -->
+<!--         <property name="targetObject" ref="commonRefreshTask" /> -->
+<!--         <property name="targetMethod" value="run" /> -->
+<!--     </bean> -->
+    
+      <bean id="testTaskJob" class="org.springframework.scheduling.quartz.JobDetailBean">
+        <property name="jobClass">
+             <value>com.test.MyDetailQuartzJobBean</value>
+        </property>
+        <property name="jobDataAsMap">
+            <map>
+                  <entry key="targetObject" value="testTask"/>
+                  <entry key="targetMethod" value="run"/>
+            </map>
+        </property>
+
+    </bean>
+
+
+	<!-- ========================================== -->
+	<!-- Trigger                            -->
+	<!-- ========================================== -->
+	<bean id="testTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="testTaskJob" />
+		<property name="cronExpression" value="0/5 * * * * ?" />
+	</bean>
+ 
+ 	<!-- ========================================== -->
+	<!-- load Trigger                            -->
+	<!-- ========================================== -->
+	<bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean" autowire="no">
+		<property name="triggers">
+			<list>		
+ 				<ref bean="testTrigger"/>
+			</list>
+		</property>
+		<property name="autoStartup" value="true" />
+		<property name="applicationContextSchedulerContextKey" value="applicationContext" />
+		<property name="configLocation" value="classpath:quartz.properties" />
+		<!-- delay start scheduler，wait for bean factory init-->
+		<property name="startupDelay" value="1" />
+		
+		        <!-- 任务唯一的名称，将会持久化到数据库-->
+        <property name="schedulerName" value="baseScheduler"/>
+
+        <!-- 每台集群机器部署应用的时候会更新触发器-->
+        <property name="overwriteExistingJobs" value="true"/> 
+         <property name="dataSource" ref="dataSource"/>  
+        
+	</bean>
+</beans>
